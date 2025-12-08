@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SFC PP 管理アプリ</title>
+
+<link rel="manifest" href="manifest.json">
+
+<style>
+    body { font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+           margin: 0; padding: 20px; background: #f4f7fb; }
+    h1 { text-align: center; color: #0053a0; }
+    .card { background: #fff; padding: 15px; border-radius: 12px;
+            margin: 15px 0; box-shadow: 0 2px 6px rgba(0,0,0,0.1);}
+    label { display:block; margin-top:12px; }
+    input, select { width:100%; padding:10px; margin-top:5px;
+                    border-radius:6px; border:1px solid #ccc; }
+    button { width:100%; padding:12px; margin-top:15px; border:0;
+             background:#0053a0; color:white; border-radius:8px;
+             font-size:16px; font-weight:bold; }
+    .delete-btn { background:#d9534f; margin-top:0; padding:6px 10px; }
+    table { width:100%; border-collapse: collapse; margin-top:10px; }
+    th, td { padding:10px; border-bottom:1px solid #ddd; }
+    progress { width:100%; height:20px; }
+</style>
+
+</head>
+<body>
+
+<h1>SFC PP 管理アプリ</h1>
+
+<div class="card">
+    <h2>フライト入力（PP自動計算）</h2>
+
+    <label>日付
+        <input id="date" type="date">
+    </label>
+
+    <label>区間
+        <select id="route">
+            <option value="">選択してください</option>
+            <option value="HND-OKA" data-pp="1476">羽田→那覇（1476PP）</option>
+            <option value="OKA-HND" data-pp="1476">那覇→羽田（1476PP）</option>
+            <option value="HND-FUK" data-pp="850">羽田→福岡（850PP）</option>
+            <option value="FUK-HND" data-pp="850">福岡→羽田（850PP）</option>
+            <option value="HND-CTS" data-pp="765">羽田→札幌（765PP）</option>
+            <option value="CTS-HND" data-pp="765">札幌→羽田（765PP）</option>
+        </select>
+    </label>
+
+    <label>金額（円）
+        <input id="cost" type="number" min="0">
+    </label>
+
+    <button onclick="addFlight()">追加</button>
+    <button class="delete-btn" onclick="clearAll()">全削除</button>
+</div>
+
+<div class="card">
+    <h2>進捗状況</h2>
+    <p>合計PP：<span id="totalPP">0</span> / 50,000</p>
+    <p>合計費用：<span id="totalCost">0</span> 円</p>
+    <p>PP単価：<span id="ppUnit">0</span> 円/PP</p>
+    <progress id="progressBar" max="50000" value="0"></progress>
+</div>
+
+<div class="card">
+    <h2>フライト一覧</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>日付</th>
+                <th>区間</th>
+                <th>PP</th>
+                <th>金額</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody id="list"></tbody>
+    </table>
+</div>
+
+<script>
+let flights = JSON.parse(localStorage.getItem("flights") || "[]");
+
+function save(){ localStorage.setItem("flights", JSON.stringify(flights)); }
+
+function addFlight() {
+    const date = document.getElementById("date").value;
+    const routeSel = document.getElementById("route");
+    const route = routeSel.value;
+    const pp = Number(routeSel.selectedOptions[0].dataset.pp);
+    const cost = Number(document.getElementById("cost").value);
+
+    if(!date || !route || !cost){
+        alert("日付・区間・金額を入力してください");
+        return;
+    }
+
+    flights.push({date, route, pp, cost});
+    save();
+    render();
+}
+
+function deleteFlight(i){
+    flights.splice(i,1);
+    save();
+    render();
+}
+
+function clearAll(){
+    if(confirm("全て削除しますか？")){
+        flights = [];
+        save();
+        render();
+    }
+}
+
+function render(){
+    const list = document.getElementById("list");
+    list.innerHTML = "";
+
+    let totalPP = 0, totalCost = 0;
+
+    flights.forEach((f,i)=>{
+        totalPP += f.pp;
+        totalCost += f.cost;
+
+        list.innerHTML += `
+            <tr>
+                <td>${f.date}</td>
+                <td>${f.route}</td>
+                <td>${f.pp}</td>
+                <td>${f.cost}</td>
+                <td><button class="delete-btn" onclick="deleteFlight(${i})">削除</button></td>
+            </tr>
+        `;
+    });
+
+    document.getElementById("totalPP").textContent = totalPP;
+    document.getElementById("totalCost").textContent = totalCost.toLocaleString();
+    document.getElementById("ppUnit").textContent = totalPP ? (totalCost/totalPP).toFixed(1) : 0;
+    document.getElementById("progressBar").value = totalPP;
+}
+
+render();
+
+// PWA Service Worker
+if("serviceWorker" in navigator){
+    navigator.serviceWorker.register("service-worker.js");
+}
+</script>
+
+</body>
+</html>

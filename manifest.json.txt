@@ -1,0 +1,9 @@
+{
+  "name": "SFC PP 管理アプリ",
+  "short_name": "SFC PP",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0053a0",
+  "icons": []
+}
